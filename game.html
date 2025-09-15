@@ -110,6 +110,9 @@
             font-size: 18px;
             margin: 20px auto;
             display: block;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
         .role-text {
@@ -120,6 +123,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-direction: column;
+            gap: 10px;
         }
         
         .players-list {
@@ -414,6 +419,69 @@
             font-weight: bold;
             color: #f9d71c;
         }
+        
+        .spy-list {
+            margin-top: 10px;
+            font-size: 16px;
+            color: #e94b3c;
+        }
+        
+        /* استایل‌های موبایل */
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+            
+            .role-button {
+                padding: 12px 25px;
+                font-size: 16px;
+                margin: 15px auto;
+            }
+            
+            .role-text {
+                font-size: 18px;
+                min-height: 80px;
+            }
+            
+            .role-display {
+                padding: 15px;
+                margin: 20px 0;
+            }
+            
+            .chat-container {
+                height: 350px;
+            }
+            
+            .poll-option {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .poll-bar {
+                width: 100%;
+                margin: 5px 0;
+            }
+            
+            .poll-percent {
+                width: 50px;
+                text-align: left;
+            }
+            
+            button {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+            
+            .admin-controls button {
+                padding: 10px 20px;
+            }
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
@@ -506,9 +574,9 @@
             </div>
         </div>
         
-        <!-- بخش نظرسنجی (فقط برای جاسوس‌ها) -->
+        <!-- بخش نظرسنجی (فقط برای شهروندان) -->
         <div id="poll-section" class="hidden">
-            <h2>نظرسنجی جاسوس‌ها</h2>
+            <h2>نظرسنجی شهروندان</h2>
             
             <div id="poll-creation" class="poll-creation">
                 <h3>ایجاد نظرسنجی جدید</h3>
@@ -517,7 +585,7 @@
                     <input type="text" id="poll-question" placeholder="مثال: چه کسی جاسوس است؟">
                 </div>
                 <div class="form-group">
-                    <label>انتخاب گزینه‌ها (شهروندان):</label>
+                    <label>انتخاب گزینه‌ها (بازیکنان مشکوک):</label>
                     <div id="poll-options-list" class="poll-options-list"></div>
                 </div>
                 <button id="create-poll">ایجاد نظرسنجی</button>
@@ -635,6 +703,8 @@
         roleButton.addEventListener('mousedown', showRole);
         roleButton.addEventListener('mouseup', hideRole);
         roleButton.addEventListener('mouseleave', hideRole);
+        roleButton.addEventListener('touchstart', showRole);
+        roleButton.addEventListener('touchend', hideRole);
         sendMessageBtn.addEventListener('click', sendMessage);
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
@@ -833,17 +903,12 @@
                     adminPlayerCount.textContent = names.length;
                 }
                 
-                // نمایش لیست بازیکنان
+                // نمایش لیست بازیکنان بدون نشانگر نقش
                 playersList.innerHTML = '';
                 names.forEach(name => {
                     const playerItem = document.createElement('div');
                     playerItem.className = 'player-item';
-                    playerItem.innerHTML = `
-                        <span>${name}</span>
-                        <span class="team-badge ${spiesList.includes(name) ? 'team-spy' : 'team-citizen'}">
-                            ${spiesList.includes(name) ? 'جاسوس' : 'شهروند'}
-                        </span>
-                    `;
+                    playerItem.innerHTML = `<span>${name}</span>`;
                     playersList.appendChild(playerItem);
                 });
             } catch (error) {
@@ -902,8 +967,8 @@
                         gameStatus.querySelector('p').textContent = 'بازی هنوز شروع نشده است. لطفا صبر کنید...';
                     }
                     
-                    // اگر جاسوس است، بخش نظرسنجی را نمایش بده
-                    if (playerRole === 'spy') {
+                    // اگر شهروند است، بخش نظرسنجی را نمایش بده
+                    if (playerRole === 'citizen') {
                         pollSection.classList.remove('hidden');
                         loadPollOptions();
                     }
@@ -1175,7 +1240,7 @@
                 const otherSpies = spiesList.filter(name => name !== playerName);
                 roleText.innerHTML = `
                     <div>شما جاسوس هستید!</div>
-                    <div>هم تیمی های شما: ${otherSpies.join('، ')}</div>
+                    <div class="spy-list">هم تیمی های شما: ${otherSpies.join('، ')}</div>
                 `;
             } else {
                 roleText.innerHTML = `
@@ -1357,20 +1422,36 @@
         }
 
         // تابع بارگیری گزینه‌های نظرسنجی
-        function loadPollOptions() {
-            pollOptionsList.innerHTML = '';
-            
-            citizensList.forEach(name => {
-                const optionItem = document.createElement('div');
-                optionItem.className = 'poll-option-item';
-                optionItem.innerHTML = `
-                    <input type="checkbox" id="poll-${name}" value="${name}">
-                    <label for="poll-${name}">${name}</label>
-                `;
-                pollOptionsList.appendChild(optionItem);
-            });
+        async function loadPollOptions() {
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}/latest`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                    }
+                });
+                
+                const data = await response.json();
+                const allPlayers = data.record?.data?.name || [];
+                
+                // نگه داشتن تمام بازیکنان در لیست گزینه‌ها (حتی خود شهروند)
+                const pollOptions = allPlayers; // حذف فیلتر کردن playerName
+                
+                pollOptionsList.innerHTML = '';
+                pollOptions.forEach(name => {
+                    const optionItem = document.createElement('div');
+                    optionItem.className = 'poll-option-item';
+                    optionItem.innerHTML = `
+                        <input type="checkbox" id="poll-${name}" value="${name}">
+                        <label for="poll-${name}">${name}</label>
+                    `;
+                    pollOptionsList.appendChild(optionItem);
+                });
+            } catch (error) {
+                console.error('خطا در بارگیری گزینه‌های نظرسنجی:', error);
+                showNotification('خطا در بارگیری گزینه‌های نظرسنجی', true);
+            }
         }
-
         // تابع ایجاد نظرسنجی
         async function createPoll() {
             const question = pollQuestion.value.trim();
