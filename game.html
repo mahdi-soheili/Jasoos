@@ -426,22 +426,48 @@
             color: #e94b3c;
         }
         
-        /* استایل‌های بخش چت خصوصی */
-        #private-chat-section {
-            margin-top: 20px;
-        }
-        
-        .chat-partner-selector {
-            margin-bottom: 15px;
-        }
-        
-        .private-chat-info {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px;
+        /* استایل‌های دکمه‌های نظرسنجی */
+        .poll-vote-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 15px;
             border-radius: 8px;
-            margin-bottom: 15px;
+            cursor: pointer;
+            margin: 5px 0;
+            width: 100%;
             text-align: center;
-            font-style: italic;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .poll-vote-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+        }
+        
+        .poll-vote-btn:disabled {
+            background: #555;
+            color: #aaa;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .poll-options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .poll-status {
+            text-align: center;
+            padding: 10px;
+            background: rgba(76, 175, 80, 0.2);
+            border-radius: 8px;
+            margin-top: 15px;
+            font-weight: bold;
         }
         
         /* استایل‌های موبایل */
@@ -498,6 +524,10 @@
             
             .admin-controls button {
                 padding: 10px 20px;
+            }
+            
+            .poll-options-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -592,49 +622,13 @@
             </div>
         </div>
         
-        <!-- بخش چت خصوصی -->
-        <div id="private-chat-section" class="hidden">
-            <h2>چت خصوصی</h2>
-            
-            <div class="chat-partner-selector form-group">
-                <label for="chat-partner">انتخاب بازیکن برای چت:</label>
-                <select id="chat-partner">
-                    <option value="">-- انتخاب کنید --</option>
-                </select>
-            </div>
-            
-            <div id="private-chat-container" class="chat-container hidden">
-                <div class="private-chat-info">شما در حال چت با یکی از بازیکنان هستید. هویت واقعی او برای شما مشخص نیست.</div>
-                <div id="private-chat-messages" class="chat-messages"></div>
-                <div class="chat-input-container">
-                    <input type="text" id="private-chat-input" class="chat-input" placeholder="پیام خود را بنویسید...">
-                    <button id="send-private-message">ارسال</button>
-                </div>
-            </div>
-        </div>
-        
         <!-- بخش نظرسنجی (برای همه بازیکنان) -->
         <div id="poll-section" class="hidden">
             <h2>نظرسنجی بازیکنان</h2>
-            
-            <div id="poll-creation" class="poll-creation">
-                <h3>ایجاد نظرسنجی جدید</h3>
-                <div class="form-group">
-                    <label for="poll-question">سوال نظرسنجی:</label>
-                    <input type="text" id="poll-question" placeholder="مثال: چه کسی جاسوس است؟">
-                </div>
-                <div class="form-group">
-                    <label>انتخاب گزینه‌ها (بازیکنان مشکوک):</label>
-                    <div id="poll-options-list" class="poll-options-list"></div>
-                </div>
-                <button id="create-poll">ایجاد نظرسنجی</button>
-            </div>
-            
-            <div id="poll-results" class="poll-container hidden">
-                <h3>نظرسنجی فعلی</h3>
-                <div id="poll-question-display"></div>
+            <div id="poll-container" class="poll-container">
+                <h3>چه کسی جاسوس است؟</h3>
                 <div id="poll-options-container"></div>
-                <button id="vote-poll" class="hidden">رأی دادن</button>
+                <div id="poll-status" class="poll-status hidden">شما رأی خود را ثبت کرده‌اید</div>
             </div>
         </div>
     </div>
@@ -661,13 +655,12 @@
         let chatInterval;
         let timerInterval;
         let gameStateInterval;
+        let pollInterval;
         let spiesList = [];
         let citizensList = [];
         let currentPoll = null;
         let hasVoted = false;
         let isAdmin = false;
-        let privateChatPartner = '';
-        let privateChatMessages = [];
         // وضعیت اولیه بازی
         let gameState = {
             gameStarted: false,
@@ -716,22 +709,10 @@
         const chatInput = document.getElementById('chat-input');
         const sendMessageBtn = document.getElementById('send-message');
         const pollSection = document.getElementById('poll-section');
-        const pollCreation = document.getElementById('poll-creation');
-        const pollQuestion = document.getElementById('poll-question');
-        const pollOptionsList = document.getElementById('poll-options-list');
-        const createPollBtn = document.getElementById('create-poll');
-        const pollResults = document.getElementById('poll-results');
-        const pollQuestionDisplay = document.getElementById('poll-question-display');
+        const pollContainer = document.getElementById('poll-container');
         const pollOptionsContainer = document.getElementById('poll-options-container');
-        const votePollBtn = document.getElementById('vote-poll');
+        const pollStatus = document.getElementById('poll-status');
         const notification = document.getElementById('notification');
-        // عناصر چت خصوصی
-        const privateChatSection = document.getElementById('private-chat-section');
-        const chatPartnerSelect = document.getElementById('chat-partner');
-        const privateChatContainer = document.getElementById('private-chat-container');
-        const privateChatMessagesDiv = document.getElementById('private-chat-messages');
-        const privateChatInput = document.getElementById('private-chat-input');
-        const sendPrivateMessageBtn = document.getElementById('send-private-message');
         // رویدادها
         submitNameBtn.addEventListener('click', submitName);
         changeNameBtn.addEventListener('click', changeName);
@@ -749,22 +730,6 @@
         sendMessageBtn.addEventListener('click', sendMessage);
         chatInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
-        });
-        createPollBtn.addEventListener('click', createPoll);
-        votePollBtn.addEventListener('click', votePoll);
-        // رویدادهای چت خصوصی
-        chatPartnerSelect.addEventListener('change', (e) => {
-            privateChatPartner = e.target.value;
-            if (privateChatPartner) {
-                loadPrivateChat();
-                privateChatContainer.classList.remove('hidden');
-            } else {
-                privateChatContainer.classList.add('hidden');
-            }
-        });
-        sendPrivateMessageBtn.addEventListener('click', sendPrivateMessage);
-        privateChatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendPrivateMessage();
         });
         // تابع نمایش اعلان
         function showNotification(message, isError = false) {
@@ -958,28 +923,10 @@
                     playerItem.innerHTML = `<span>${name}</span>`;
                     playersList.appendChild(playerItem);
                 });
-                
-                // به‌روزرسانی لیست بازیکنان برای چت خصوصی
-                updateChatPartners(names);
             } catch (error) {
                 console.error('خطا در بارگیری بازیکنان:', error);
                 showNotification('خطا در بارگیری لیست بازیکنان', true);
             }
-        }
-        // تابع به‌روزرسانی لیست بازیکنان برای چت خصوصی
-        function updateChatPartners(names) {
-            // حذف نام خود بازیکن از لیست
-            const otherPlayers = names.filter(name => name !== playerName);
-            
-            // به‌روزرسانی لیست انتخاب بازیکن
-            chatPartnerSelect.innerHTML = '<option value="">-- انتخاب کنید --</option>';
-            
-            otherPlayers.forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                chatPartnerSelect.appendChild(option);
-            });
         }
         // تابع بارگیری وضعیت بازی
         async function loadGameState() {
@@ -1018,8 +965,8 @@
                         await loadRolesFromDatabase();
                         roleSection.classList.remove('hidden');
                         
-                        // نمایش بخش چت خصوصی برای همه بازیکنان
-                        privateChatSection.classList.remove('hidden');
+                        // نمایش بخش نظرسنجی برای همه بازیکنان
+                        pollSection.classList.remove('hidden');
                         
                         // اگر چت فعال شده، آن را شروع کن
                         if (gameState.chatStarted) {
@@ -1029,14 +976,16 @@
                             chatSection.classList.remove('hidden');
                             chatContainer.classList.add('chat-disabled');
                         }
+                        
+                        // بارگیری نظرسنجی
+                        loadPoll();
+                        
+                        // شروع به‌روزرسانی نظرسنجی
+                        startPollCheck();
                     } else {
                         gameStatus.classList.remove('hidden');
                         gameStatus.querySelector('p').textContent = 'بازی هنوز شروع نشده است. لطفا صبر کنید...';
                     }
-                    
-                    // نمایش بخش نظرسنجی برای همه بازیکنان
-                    pollSection.classList.remove('hidden');
-                    loadPollOptions();
                 }
             } catch (error) {
                 console.error('خطا در بارگیری وضعیت بازی:', error);
@@ -1104,6 +1053,9 @@
             // ذخیره وضعیت بازی
             await saveGameState();
             
+            // ایجاد نظرسنجی خودکار
+            await createAutomaticPoll();
+            
             // به‌روزرسانی UI
             adminGameStatus.textContent = 'شروع شده';
             adminChatStatus.textContent = 'غیرفعال';
@@ -1111,6 +1063,174 @@
             changeNameInStatus.classList.add('hidden');
             
             showNotification('بازی با موفقیت شروع شد');
+        }
+        // تابع ایجاد نظرسنجی خودکار
+        async function createAutomaticPoll() {
+            try {
+                // دریافت لیست بازیکنان
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}/latest`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                    }
+                });
+                
+                const data = await response.json();
+                const allPlayers = data.record?.data?.name || [];
+                
+                // ایجاد نظرسنجی
+                currentPoll = {
+                    question: "چه کسی جاسوس است؟",
+                    options: allPlayers,
+                    votes: {}
+                };
+                
+                // مقداردهی اولیه رأی‌ها
+                allPlayers.forEach(player => {
+                    currentPoll.votes[player] = 0;
+                });
+                
+                // ذخیره نظرسنجی در دیتابیس
+                await savePoll();
+                
+                showNotification('نظرسنجی با موفقیت ایجاد شد');
+            } catch (error) {
+                console.error('خطا در ایجاد نظرسنجی:', error);
+                showNotification('خطا در ایجاد نظرسنجی', true);
+            }
+        }
+        // تابع ذخیره نظرسنجی
+        async function savePoll() {
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}/latest`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                    }
+                });
+                
+                const data = await response.json();
+                const currentData = data.record || { data: { name: [], ChatShahrvand: [], gameState: {} } };
+                
+                // به‌روزرسانی داده‌ها با نظرسنجی
+                const updatedData = {
+                    ...currentData,
+                    data: {
+                        ...currentData.data,
+                        poll: currentPoll
+                    }
+                };
+                
+                // ذخیره داده‌های به‌روز شده
+                await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+            } catch (error) {
+                console.error('خطا در ذخیره نظرسنجی:', error);
+                showNotification('خطا در ذخیره نظرسنجی', true);
+            }
+        }
+        // تابع بارگیری نظرسنجی
+        async function loadPoll() {
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}/latest`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                    }
+                });
+                
+                const data = await response.json();
+                currentPoll = data.record?.data?.poll;
+                
+                if (currentPoll) {
+                    displayPoll();
+                }
+            } catch (error) {
+                console.error('خطا در بارگیری نظرسنجی:', error);
+                showNotification('خطا در بارگیری نظرسنجی', true);
+            }
+        }
+        // تابع شروع بررسی نظرسنجی
+        function startPollCheck() {
+            pollInterval = setInterval(async () => {
+                await loadPoll();
+            }, 3000);
+        }
+        // تابع نمایش نظرسنجی
+        function displayPoll() {
+            if (!currentPoll) return;
+            
+            pollOptionsContainer.innerHTML = '';
+            
+            // اگر کاربر رأی نداده، دکمه‌های رأی را نمایش بده
+            if (!hasVoted) {
+                const optionsGrid = document.createElement('div');
+                optionsGrid.className = 'poll-options-grid';
+                
+                currentPoll.options.forEach(option => {
+                    const voteBtn = document.createElement('button');
+                    voteBtn.className = 'poll-vote-btn';
+                    voteBtn.textContent = option;
+                    voteBtn.dataset.player = option;
+                    
+                    voteBtn.addEventListener('click', async () => {
+                        await voteForPlayer(option);
+                    });
+                    
+                    optionsGrid.appendChild(voteBtn);
+                });
+                
+                pollOptionsContainer.appendChild(optionsGrid);
+                pollStatus.classList.add('hidden');
+            } else {
+                // نمایش نتایج نظرسنجی
+                const totalVotes = Object.values(currentPoll.votes).reduce((sum, count) => sum + count, 0);
+                
+                currentPoll.options.forEach(option => {
+                    const votes = currentPoll.votes[option];
+                    const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                    
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'poll-option';
+                    optionDiv.innerHTML = `
+                        <div>${option}</div>
+                        <div class="poll-bar">
+                            <div class="poll-fill" style="width: ${percentage}%">${percentage}%</div>
+                        </div>
+                        <div class="poll-percent">${votes} رأی</div>
+                    `;
+                    pollOptionsContainer.appendChild(optionDiv);
+                });
+                
+                pollStatus.classList.remove('hidden');
+            }
+        }
+        // تابع رأی دادن به بازیکن
+        async function voteForPlayer(playerName) {
+            if (!currentPoll || hasVoted) return;
+            
+            try {
+                // افزایش رأی برای بازیکن انتخاب شده
+                currentPoll.votes[playerName]++;
+                hasVoted = true;
+                
+                // ذخیره نظرسنجی به‌روز شده
+                await savePoll();
+                
+                // به‌روزرسانی نمایش
+                displayPoll();
+                
+                showNotification(`رأی شما به ${playerName} با موفقیت ثبت شد`);
+            } catch (error) {
+                console.error('خطا در ثبت رأی:', error);
+                showNotification('خطا در ثبت رأی', true);
+            }
         }
         // تابع شروع چت
         async function startChat() {
@@ -1159,7 +1279,6 @@
             // پنهان کردن بخش‌های بازی
             roleSection.classList.add('hidden');
             chatSection.classList.add('hidden');
-            privateChatSection.classList.add('hidden');
             pollSection.classList.add('hidden');
             
             // نمایش پیام وضعیت
@@ -1177,6 +1296,9 @@
             
             // پاک کردن نقش‌ها
             await clearRoles();
+            
+            // پاک کردن نظرسنجی
+            await clearPoll();
             
             // ریست وضعیت بازی
             gameState = {
@@ -1206,7 +1328,6 @@
             // پنهان کردن بخش‌های بازی
             roleSection.classList.add('hidden');
             chatSection.classList.add('hidden');
-            privateChatSection.classList.add('hidden');
             pollSection.classList.add('hidden');
             
             // نمایش پیام وضعیت
@@ -1298,6 +1419,42 @@
             } catch (error) {
                 console.error('خطا در پاک کردن نقش‌ها:', error);
                 showNotification('خطا در پاک کردن نقش‌ها', true);
+            }
+        }
+        // تابع پاک کردن نظرسنجی
+        async function clearPoll() {
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}/latest`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                    }
+                });
+                
+                const data = await response.json();
+                const currentData = data.record || { data: { name: [], ChatShahrvand: [], gameState: {} } };
+                
+                // حذف نظرسنجی
+                const updatedData = {
+                    ...currentData,
+                    data: {
+                        ...currentData.data,
+                        poll: null
+                    }
+                };
+                
+                // ذخیره داده‌های به‌روز شده
+                await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+            } catch (error) {
+                console.error('خطا در پاک کردن نظرسنجی:', error);
+                showNotification('خطا در پاک کردن نظرسنجی', true);
             }
         }
         // تابع تخصیص نقش‌ها
@@ -1589,239 +1746,6 @@
                 console.error('خطا در ارسال پیام:', error);
                 showNotification('خطا در ارسال پیام', true);
             }
-        }
-        // تابع بارگیری چت خصوصی
-        async function loadPrivateChat() {
-            if (!privateChatPartner) return;
-            
-            try {
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}/latest`, {
-                    method: 'GET',
-                    headers: {
-                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
-                    }
-                });
-                
-                const data = await response.json();
-                const privateChats = data.record?.data?.privateChats || {};
-                
-                // ایجاد کلید منحصر به فرد برای چت بین دو بازیکن (ترتیب نام‌ها مهم نیست)
-                const chatKey = [playerName, privateChatPartner].sort().join('_');
-                privateChatMessages = privateChats[chatKey] || [];
-                
-                displayPrivateChat();
-            } catch (error) {
-                console.error('خطا در بارگیری چت خصوصی:', error);
-                showNotification('خطا در بارگیری چت خصوصی', true);
-            }
-        }
-        // تابع نمایش چت خصوصی
-        function displayPrivateChat() {
-            privateChatMessagesDiv.innerHTML = '';
-            
-            privateChatMessages.forEach(msg => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.sender === playerName ? 'own' : 'other'}`;
-                
-                const time = new Date(msg.timestamp).toLocaleTimeString('fa-IR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-                
-                // برای پیام‌های دیگران، نام فرستنده را نمایش نده
-                const senderName = msg.sender === playerName ? 'شما' : 'هم‌بازی';
-                
-                messageDiv.innerHTML = `
-                    <div class="message-info">${senderName} - ${time}</div>
-                    <div>${msg.message}</div>
-                `;
-                
-                privateChatMessagesDiv.appendChild(messageDiv);
-            });
-            
-            // اسکرول به پایین
-            privateChatMessagesDiv.scrollTop = privateChatMessagesDiv.scrollHeight;
-        }
-        // تابع ارسال پیام خصوصی
-        async function sendPrivateMessage() {
-            const message = privateChatInput.value.trim();
-            if (!message || !privateChatPartner) return;
-            
-            const newMessage = {
-                sender: playerName,
-                message: message,
-                timestamp: Date.now()
-            };
-            
-            try {
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}/latest`, {
-                    method: 'GET',
-                    headers: {
-                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
-                    }
-                });
-                
-                const data = await response.json();
-                const currentData = data.record || { data: { name: [], ChatShahrvand: [], gameState: {} } };
-                const privateChats = currentData.data?.privateChats || {};
-                
-                // ایجاد کلید منحصر به فرد برای چت بین دو بازیکن
-                const chatKey = [playerName, privateChatPartner].sort().join('_');
-                
-                // اضافه کردن پیام جدید به چت
-                if (!privateChats[chatKey]) {
-                    privateChats[chatKey] = [];
-                }
-                privateChats[chatKey].push(newMessage);
-                
-                // ذخیره داده‌های به‌روز شده
-                await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
-                    },
-                    body: JSON.stringify({
-                        data: {
-                            ...currentData.data,
-                            privateChats: privateChats
-                        }
-                    })
-                });
-                
-                privateChatInput.value = '';
-                loadPrivateChat();
-            } catch (error) {
-                console.error('خطا در ارسال پیام خصوصی:', error);
-                showNotification('خطا در ارسال پیام خصوصی', true);
-            }
-        }
-        // تابع بارگیری گزینه‌های نظرسنجی
-        async function loadPollOptions() {
-            try {
-                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}/latest`, {
-                    method: 'GET',
-                    headers: {
-                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
-                    }
-                });
-                
-                const data = await response.json();
-                const allPlayers = data.record?.data?.name || [];
-                
-                // نگه داشتن تمام بازیکنان در لیست گزینه‌ها
-                const pollOptions = allPlayers;
-                
-                pollOptionsList.innerHTML = '';
-                pollOptions.forEach(name => {
-                    const optionItem = document.createElement('div');
-                    optionItem.className = 'poll-option-item';
-                    optionItem.innerHTML = `
-                        <input type="checkbox" id="poll-${name}" value="${name}">
-                        <label for="poll-${name}">${name}</label>
-                    `;
-                    pollOptionsList.appendChild(optionItem);
-                });
-            } catch (error) {
-                console.error('خطا در بارگیری گزینه‌های نظرسنجی:', error);
-                showNotification('خطا در بارگیری گزینه‌های نظرسنجی', true);
-            }
-        }
-        // تابع ایجاد نظرسنجی
-        async function createPoll() {
-            // دریافت لیست بازیکنان
-            const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}/latest`, {
-                method: 'GET',
-                headers: {
-                    'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
-                }
-            });
-            
-            const data = await response.json();
-            const allPlayers = data.record?.data?.name || [];
-            
-            // ایجاد نظرسنجی با تمام بازیکنان به عنوان گزینه‌ها
-            currentPoll = {
-                question: "چه کسی جاسوس است؟",
-                options: allPlayers,
-                votes: {}
-            };
-            
-            // مقداردهی اولیه رأی‌ها
-            allPlayers.forEach(player => {
-                currentPoll.votes[player] = 0;
-            });
-            
-            // نمایش نظرسنجی
-            pollCreation.classList.add('hidden');
-            pollResults.classList.remove('hidden');
-            pollQuestionDisplay.textContent = currentPoll.question;
-            displayPollResults();
-            
-            showNotification('نظرسنجی با موفقیت ایجاد شد');
-        }
-        // تابع نمایش نتایج نظرسنجی
-        function displayPollResults() {
-            pollOptionsContainer.innerHTML = '';
-            
-            const totalVotes = Object.values(currentPoll.votes).reduce((sum, count) => sum + count, 0);
-            
-            currentPoll.options.forEach(option => {
-                const votes = currentPoll.votes[option];
-                const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-                
-                const optionDiv = document.createElement('div');
-                optionDiv.className = 'poll-option';
-                optionDiv.innerHTML = `
-                    <div>${option}</div>
-                    <div class="poll-bar">
-                        <div class="poll-fill" style="width: ${percentage}%">${percentage}%</div>
-                    </div>
-                    <div class="poll-percent">${votes} رأی</div>
-                `;
-                pollOptionsContainer.appendChild(optionDiv);
-            });
-            
-            // اگر بازیکن رأی نداده، دکمه رأی دادن را نمایش بده
-            if (!hasVoted) {
-                votePollBtn.classList.remove('hidden');
-            }
-        }
-        // تابع رأی دادن به نظرسنجی
-        async function votePoll() {
-            if (!currentPoll || hasVoted) return;
-            
-            // نمایش لیست بازیکنان برای رأی دادن
-            const pollOptionsContainer = document.getElementById('poll-options-container');
-            pollOptionsContainer.innerHTML = '';
-            
-            currentPoll.options.forEach(option => {
-                const optionDiv = document.createElement('div');
-                optionDiv.className = 'poll-option';
-                optionDiv.innerHTML = `
-                    <button class="poll-vote-btn" data-player="${option}">${option}</button>
-                `;
-                pollOptionsContainer.appendChild(optionDiv);
-            });
-            
-            // اضافه کردن رویداد کلیک به دکمه‌ها
-            document.querySelectorAll('.poll-vote-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const selectedPlayer = e.target.dataset.player;
-                    
-                    // ثبت رأی
-                    currentPoll.votes[selectedPlayer]++;
-                    hasVoted = true;
-                    
-                    // به‌روزرسانی نمایش
-                    displayPollResults();
-                    
-                    showNotification(`رأی شما به ${selectedPlayer} با موفقیت ثبت شد`);
-                });
-            });
-            
-            // مخفی کردن دکمه رأی دادن اصلی
-            votePollBtn.classList.add('hidden');
         }
         // اگر بازیکن قبلاً نام خود را وارد کرده، فرم را مخفی کن
         if (playerName) {
