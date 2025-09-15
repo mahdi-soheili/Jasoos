@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی جاسوس</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Vazirmatn', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #f9d71c;
+            text-shadow: 0 0 10px rgba(249, 215, 28, 0.7);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 16px;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 10px rgba(249, 215, 28, 0.5);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #f9d71c, #e94b3c);
+            color: #000;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(249, 215, 28, 0.4);
+        }
+        
+        button:disabled {
+            background: #555;
+            color: #aaa;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .role-display {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            border: 2px solid #f9d71c;
+        }
+        
+        .role-button {
+            background: linear-gradient(45deg, #4e54c8, #8f94fb);
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 20px auto;
+            display: block;
+        }
+        
+        .role-text {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 15px 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .players-list {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .player-item {
+            padding: 8px 15px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .chat-container {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .message {
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            max-width: 80%;
+        }
+        
+        .message.own {
+            background: rgba(76, 175, 80, 0.3);
+            margin-right: auto;
+            margin-left: 20%;
+        }
+        
+        .message.other {
+            background: rgba(33, 150, 243, 0.3);
+            margin-left: auto;
+            margin-right: 20%;
+        }
+        
+        .message-info {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+        }
+        
+        .poll-container {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .poll-option {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .poll-bar {
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            flex: 1;
+            margin: 0 10px;
+        }
+        
+        .poll-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #f9d71c, #e94b3c);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .poll-percent {
+            min-width: 50px;
+            text-align: center;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .timer {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #f9d71c;
+        }
+        
+        .status-message {
+            text-align: center;
+            padding: 15px;
+            background: rgba(249, 215, 28, 0.2);
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        
+        .team-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .team-spy {
+            background: #e94b3c;
+            color: #fff;
+        }
+        
+        .team-citizen {
+            background: #4caf50;
+            color: #fff;
+        }
+        
+        .poll-creation {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .poll-options-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+        
+        .poll-option-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .poll-option-item input {
+            margin-left: 10px;
+        }
+        
+        .chat-disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>بازی جاسوس</h1>
+        
+        <!-- فرم ورود نام -->
+        <div id="name-form" class="form-group">
+            <label for="player-name">نام خود را وارد کنید:</label>
+            <input type="text" id="player-name" placeholder="نام شما">
+            <button id="submit-name">ثبت نام</button>
+        </div>
+        
+        <!-- نمایش وضعیت بازی -->
+        <div id="game-status" class="status-message hidden">
+            بازی هنوز شروع نشده است. لطفا صبر کنید...
+        </div>
+        
+        <!-- لیست بازیکنان -->
+        <div id="players-section" class="hidden">
+            <h2>بازیکنان حاضر (<span id="player-count">0</span> نفر)</h2>
+            <div id="players-list" class="players-list"></div>
+        </div>
+        
+        <!-- بخش نمایش نقش -->
+        <div id="role-section" class="hidden">
+            <div class="role-display">
+                <p>برای دیدن نقش خود، دکمه زیر را نگه دارید</p>
+                <button id="role-button" class="role-button">نمایش نقش</button>
+                <div id="role-text" class="role-text"></div>
+            </div>
+        </div>
+        
+        <!-- تایمر چت -->
+        <div id="timer" class="timer hidden"></div>
+        
+        <!-- بخش چت -->
+        <div id="chat-section" class="hidden">
+            <h2>چت تیمی</h2>
+            <div id="chat-container" class="chat-container">
+                <div id="chat-messages" class="chat-messages"></div>
+                <div class="chat-input-container">
+                    <input type="text" id="chat-input" class="chat-input" placeholder="پیام خود را بنویسید...">
+                    <button id="send-message">ارسال</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- بخش نظرسنجی (فقط برای جاسوس‌ها) -->
+        <div id="poll-section" class="hidden">
+            <h2>نظرسنجی جاسوس‌ها</h2>
+            
+            <div id="poll-creation" class="poll-creation">
+                <h3>ایجاد نظرسنجی جدید</h3>
+                <div class="form-group">
+                    <label for="poll-question">سوال نظرسنجی:</label>
+                    <input type="text" id="poll-question" placeholder="مثال: چه کسی جاسوس است؟">
+                </div>
+                <div class="form-group">
+                    <label>انتخاب گزینه‌ها (شهروندان):</label>
+                    <div id="poll-options-list" class="poll-options-list"></div>
+                </div>
+                <button id="create-poll">ایجاد نظرسنجی</button>
+            </div>
+            
+            <div id="poll-results" class="poll-container hidden">
+                <h3>نظرسنجی فعلی</h3>
+                <div id="poll-question-display"></div>
+                <div id="poll-options-container"></div>
+                <button id="vote-poll" class="hidden">رأی دادن</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // تنظیمات بازی (اپراتور این بخش را تغییر می‌دهد)
+        const GAME_CONFIG = {
+            gameStarted: false, // اپراتور این را true می‌کند تا بازی فعال شود
+            numberOfSpies: 2,   // تعداد جاسوس‌ها
+            chatStarted: false, // اپراتور این را true می‌کند تا چت فعال شود
+            chatDuration: 4 * 60 * 1000, // مدت زمان چت (4 دقیقه)
+            gameWord: "", // کلمه بازی (به صورت رندوم انتخاب می‌شود)
+            
+            // دسته‌بندی‌های کلمات
+            wordCategories: {
+                "اشیاء": ["کتاب", "خودکار", "لیوان", "صندلی", "میز", "موبایل", "لپ‌تاپ", "ساعت", "کیف", "کفش", "دوچرخه", "ماشین", "هواپیما", "قطار", "کشتی", "توپ فوتبال", "دوربین", "تلویزیون", "یخچال", "چراغ", "کلید", "قفل", "شمشیر", "تفنگ", "نقشه", "تلسکوپ", "میکروسکوپ", "گیتار", "پیانو", "ویولن", "ربات", "پهپاد", "پرچم", "چتر", "طناب", "قایق", "عینک", "کلاه", "شمع", "آینه", "زنگ", "چاقو", "چکش", "آچار", "پیچ‌گوشتی", "بیل", "سطل", "زنجیر", "ساعت شنی"],
+                "جغرافیا": ["جزیره", "دانشگاه", "روستا", "بیمارستان", "پاریس", "کشور", "کلیسای واتیکان", "شهرکرد", "رستوران", "لندن", "دادگاه تجدید نظر", "شیراز", "کلانتری", "مدار صفر درجه", "جزیره متروکه", "تالار عروسی", "تئاتر", "تاج محل", "جشنواره", "مشهد", "حمام", "کوهستان", "درمانگاه", "پشت‌بام", "خیابان", "زندان", "آتشکده", "رادیولوژی", "اصفهان", "مجلس عروسی", "شهر", "دفتر ازدواج", "سینما", "هیمالیا", "آزمایشگاه", "مدرسه", "فروشگاه", "پاساژ", "تهران", "دماوند", "ده", "غار اصحاب کهف", "پالایشگاه", "استخر", "اورست", "ساندویچی", "شهربازی", "پارک", "قلعه", "ساری", "بندرعباس", "فرودگاه", "موزه", "کتابخانه", "هتل", "ساحل", "ایستگاه قطار", "باغ‌وحش", "پل", "میدان", "کارخانه", "گورستان", "مسجد", "معبد", "باشگاه ورزشی", "آبشار", "دانشکده", "سرداب", "برج", "پمپ‌بنزین", "بازار", "بیابان", "رصدخانه", "کافه", "ایستگاه مترو", "کویر", "برج میلاد", "باغ ملی", "کشتی", "کارخانه شکلات", "گلخانه", "کتابفروشی", "میدان آزادی", "کاروانسرا", "خانه قدیمی", "موزه جنگ"],
+                "حیوانات": ["سگ", "گربه", "گوسفند", "گاو", "اسب", "مرغ", "خرگوش", "موش", "فیل", "شیر", "ببر", "پلنگ", "گرگ", "روباه", "خرس", "میمون", "گورکن", "جغد", "عقاب", "کبوتر", "قوش", "شاهین", "لاک‌پشت", "مار", "تمساح", "وزغ", "قورباغه", "ماهی", "نهنگ", "کوسه", "دلفین", "ختف", "پنگوئن", "کرگدن", "زرافه", "آهو", "غزال", "مورچه", "زنبور", "پروانه", "سوسک", "عنکبوت"],
+                "خوردنی‌ها": ["نان", "برنج", "ماست", "پنیر", "کره", "خیار", "گوجه", "سیب", "پرتقال", "موز", "کیوی", "انار", "هندوانه", "خربزه", "توت", "تخم مرغ", "مرغ", "گوشت", "ماهی", "قورمه سبزی", "قیمه", "کباب", "پیتزا", "ساندویچ", "سالاد", "سوپ", "آب", "چای", "قهوه", "شیر", "آبمیوه", "ماکارونی", "لازانیا", "بستنی", "شکلات", "کیک", "شیرینی", "کوکو", "کوکو سبزی", "کلم پلو", "لوبیا پلو", "عدس پلو", "زیتون پرورده", "ترشی", "مربا", "عسل", "خرما"],
+                "طبیعت": ["کوه", "دریا", "رودخانه", "جنگل", "بیابان", "دشت", "چمنزار", "آبشار", "غار", "چشمه", "برکه", "تالاب", "ساحل", "جزیره", "کوهستان", "دره", "تپه", "صحرا", "کویر", "یخچال طبیعی", "آتشفشان", "زمین لرزه", "طوفان", "باران", "برف", "تگرگ", "باد", "رعد و برق", "رنگین کمان", "مه", "شبنم", "یخ", "خورشید", "ماه", "ستاره", "کهکشان", "سیاره", "دنیا", "فضا", "آسمان", "ابر", "سایه", "نور", "تاریکی", "گرما", "سرما"],
+                "عمومی": ["عشق", "دوست", "خانواده", "کودک", "بزرگسال", "پیرمرد", "پیرزن", "نوزاد", "نوجوان", "مرد", "زن", "پسر", "دختر", "معلم", "دانش‌آموز", "دانشجو", "پزشک", "پرستار", "مهندس", "وکیل", "قاضی", "سرباز", "پلیس", "آتش‌نشان", "راننده", "فروشنده", "کارگر", "کشاورز", "هنرمند", "نویسنده", "خواننده", "بازیگر", "ورزشکار", "آشپز", "خدمتکار", "مسافر", "توریست", "مهاجر", "پناهنده", "بی‌خانمان", "ثروتمند", "فقیر", "خسی", "بخیل", "سخاوتمند", "مهربان", "خشن", "آرام", "عصبانی", "شاد", "غمگین", "خنده", "گریه"],
+                "مشاغل": ["بیکار", "مأمور", "دکتر", "جراح", "گارسون", "شیرفروش", "صاحب تالار", "معلم", "جادوگر", "کارمند گوگل", "مجری", "ماساژور", "سیاسی", "پلیس فتا", "مدیر منابع انسانی", "دادستان عمومی", "تشریفات", "زندانبان", "رفتگر", "ساندویچ‌فروش", "مانتوفروش", "نجار", "خلبان", "نقاش", "آهنگر", "مکانیک", "فوتبالیست", "راننده تاکسی", "خبرنگار", "شاعر", "بازیگر", "نویسنده", "نانوا", "آشپز", "برنامه‌نویس", "کشاورز", "دامدار", "شکارچی", "ماهیگیر", "فضانورد", "باستان‌شناس", "آهنگساز"]
+            }
+        };
+
+        // اطلاعات دیتابیس
+        const DB_CONFIG = {
+            nameAndCitizenChat: {
+                binID: "68c7fe59ae596e708fef54ea",
+                name: "ChatShahrvand&Name",
+                XmasterKey: "$2a$10$H7UF6qZdQe40juGQT.7G3uVhMsxLaKVrmg0y1PbRQwHJQrQbBIbfm"
+            },
+            spyChat: {
+                binID: "68c7fef143b1c97be9439901",
+                name: "ChatJasoos",
+                XmasterKey: "$2a$10$H7UF6qZdQe40juGQT.7G3uVhMsxLaKVrmg0y1PbRQwHJQrQbBIbfm"
+            }
+        };
+
+        // متغیرهای جهانی
+        let playerName = localStorage.getItem('playerName') || '';
+        let playerRole = '';
+        let chatStartTime = 0;
+        let chatInterval;
+        let timerInterval;
+        let spiesList = [];
+        let citizensList = [];
+        let currentPoll = null;
+        let hasVoted = false;
+
+        // عناصر DOM
+        const nameForm = document.getElementById('name-form');
+        const playerNameInput = document.getElementById('player-name');
+        const submitNameBtn = document.getElementById('submit-name');
+        const gameStatus = document.getElementById('game-status');
+        const playersSection = document.getElementById('players-section');
+        const playerCount = document.getElementById('player-count');
+        const playersList = document.getElementById('players-list');
+        const roleSection = document.getElementById('role-section');
+        const roleButton = document.getElementById('role-button');
+        const roleText = document.getElementById('role-text');
+        const timer = document.getElementById('timer');
+        const chatSection = document.getElementById('chat-section');
+        const chatContainer = document.getElementById('chat-container');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendMessageBtn = document.getElementById('send-message');
+        const pollSection = document.getElementById('poll-section');
+        const pollCreation = document.getElementById('poll-creation');
+        const pollQuestion = document.getElementById('poll-question');
+        const pollOptionsList = document.getElementById('poll-options-list');
+        const createPollBtn = document.getElementById('create-poll');
+        const pollResults = document.getElementById('poll-results');
+        const pollQuestionDisplay = document.getElementById('poll-question-display');
+        const pollOptionsContainer = document.getElementById('poll-options-container');
+        const votePollBtn = document.getElementById('vote-poll');
+
+        // رویدادها
+        submitNameBtn.addEventListener('click', submitName);
+        roleButton.addEventListener('mousedown', showRole);
+        roleButton.addEventListener('mouseup', hideRole);
+        roleButton.addEventListener('mouseleave', hideRole);
+        sendMessageBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        createPollBtn.addEventListener('click', createPoll);
+        votePollBtn.addEventListener('click', votePoll);
+
+        // تابع ثبت نام بازیکن
+        async function submitName() {
+            const name = playerNameInput.value.trim();
+            if (!name) {
+                alert('لطفا نام خود را وارد کنید');
+                return;
+            }
+
+            playerName = name;
+            localStorage.setItem('playerName', playerName);
+            
+            // ذخیره نام در دیتابیس
+            await savePlayerName(playerName);
+            
+            // به‌روزرسانی رابط کاربری
+            nameForm.classList.add('hidden');
+            playersSection.classList.remove('hidden');
+            gameStatus.classList.remove('hidden');
+            
+            // بارگیری لیست بازیکنان
+            await loadPlayers();
+            
+            // بررسی وضعیت بازی
+            checkGameStatus();
+        }
+
+        // تابع ذخیره نام بازیکن در دیتابیس
+        async function savePlayerName(name) {
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                    }
+                });
+                
+                const data = await response.json();
+                const names = data.record.data.name || [];
+                
+                // اضافه کردن نام جدید اگر وجود ندارد
+                if (!names.includes(name)) {
+                    names.push(name);
+                    
+                    await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                        },
+                        body: JSON.stringify({
+                            data: {
+                                ...data.record.data,
+                                name: names
+                            }
+                        })
+                    });
+                }
+            } catch (error) {
+                console.error('خطا در ذخیره نام:', error);
+            }
+        }
+
+        // تابع بارگیری لیست بازیکنان
+        async function loadPlayers() {
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                    }
+                });
+                
+                const data = await response.json();
+                const names = data.record.data.name || [];
+                
+                // به‌روزرسانی تعداد بازیکنان
+                playerCount.textContent = names.length;
+                
+                // نمایش لیست بازیکنان
+                playersList.innerHTML = '';
+                names.forEach(name => {
+                    const playerItem = document.createElement('div');
+                    playerItem.className = 'player-item';
+                    playerItem.innerHTML = `
+                        <span>${name}</span>
+                        <span class="team-badge ${spiesList.includes(name) ? 'team-spy' : 'team-citizen'}">
+                            ${spiesList.includes(name) ? 'جاسوس' : 'شهروند'}
+                        </span>
+                    `;
+                    playersList.appendChild(playerItem);
+                });
+            } catch (error) {
+                console.error('خطا در بارگیری بازیکنان:', error);
+            }
+        }
+
+        // تابع بررسی وضعیت بازی
+        function checkGameStatus() {
+            if (GAME_CONFIG.gameStarted) {
+                startGame();
+            } else {
+                gameStatus.textContent = 'بازی هنوز شروع نشده است. لطفا صبر کنید...';
+                
+                // بررسی مجدد وضعیت بازی هر 5 ثانیه
+                setTimeout(checkGameStatus, 5000);
+            }
+        }
+
+        // تابع شروع بازی
+        async function startGame() {
+            gameStatus.classList.add('hidden');
+            roleSection.classList.remove('hidden');
+            
+            // انتخاب کلمه بازی به صورت رندوم
+            if (!GAME_CONFIG.gameWord) {
+                const allWords = Object.values(GAME_CONFIG.wordCategories).flat();
+                GAME_CONFIG.gameWord = allWords[Math.floor(Math.random() * allWords.length)];
+            }
+            
+            // تخصیص نقش‌ها
+            await assignRoles();
+            
+            // نمایش بخش چت (غیرفعال)
+            chatSection.classList.remove('hidden');
+            chatContainer.classList.add('chat-disabled');
+            
+            // اگر جاسوس است، بخش نظرسنجی را نمایش بده
+            if (playerRole === 'spy') {
+                pollSection.classList.remove('hidden');
+                loadPollOptions();
+            }
+            
+            // بررسی وضعیت چت
+            checkChatStatus();
+        }
+
+        // تابع تخصیص نقش‌ها
+        async function assignRoles() {
+            try {
+                const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                    }
+                });
+                
+                const data = await response.json();
+                const names = data.record.data.name || [];
+                
+                // ایجاد لیست تصادفی از بازیکنان
+                const shuffledNames = [...names].sort(() => Math.random() - 0.5);
+                
+                // انتخاب جاسوس‌ها
+                spiesList = shuffledNames.slice(0, GAME_CONFIG.numberOfSpies);
+                citizensList = shuffledNames.slice(GAME_CONFIG.numberOfSpies);
+                
+                // تعیین نقش بازیکن فعلی
+                if (spiesList.includes(playerName)) {
+                    playerRole = 'spy';
+                } else {
+                    playerRole = 'citizen';
+                }
+                
+                // به‌روزرسانی لیست بازیکنان
+                loadPlayers();
+            } catch (error) {
+                console.error('خطا در تخصیص نقش‌ها:', error);
+            }
+        }
+
+        // تابع نمایش نقش
+        function showRole() {
+            if (playerRole === 'spy') {
+                const otherSpies = spiesList.filter(name => name !== playerName);
+                roleText.innerHTML = `
+                    <div>شما جاسوس هستید!</div>
+                    <div>هم تیمی های شما: ${otherSpies.join('، ')}</div>
+                `;
+            } else {
+                roleText.innerHTML = `
+                    <div>شما شهروند هستید!</div>
+                    <div>کلمه بازی: <strong>${GAME_CONFIG.gameWord}</strong></div>
+                `;
+            }
+        }
+
+        // تابع مخفی کردن نقش
+        function hideRole() {
+            roleText.textContent = '';
+        }
+
+        // تابع بررسی وضعیت چت
+        function checkChatStatus() {
+            if (GAME_CONFIG.chatStarted) {
+                startChat();
+            } else {
+                // بررسی مجدد وضعیت چت هر 3 ثانیه
+                setTimeout(checkChatStatus, 3000);
+            }
+        }
+
+        // تابع شروع چت
+        function startChat() {
+            // فعال کردن چت
+            chatContainer.classList.remove('chat-disabled');
+            
+            // شروع تایمر چت
+            chatStartTime = Date.now();
+            timer.classList.remove('hidden');
+            
+            timerInterval = setInterval(() => {
+                const elapsed = Date.now() - chatStartTime;
+                const remaining = Math.max(0, GAME_CONFIG.chatDuration - elapsed);
+                
+                if (remaining === 0) {
+                    clearInterval(timerInterval);
+                    clearInterval(chatInterval);
+                    timer.textContent = 'زمان چت به پایان رسید!';
+                    chatInput.disabled = true;
+                    sendMessageBtn.disabled = true;
+                } else {
+                    const minutes = Math.floor(remaining / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    timer.textContent = `زمان باقی‌مانده چت: ${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                }
+            }, 1000);
+            
+            // بارگیری چت
+            loadChat();
+            
+            // شروع به‌روزرسانی چت
+            chatInterval = setInterval(loadChat, 3000);
+        }
+
+        // تابع بارگیری چت
+        async function loadChat() {
+            try {
+                let chatData;
+                
+                if (playerRole === 'spy') {
+                    // بارگیری چت جاسوس‌ها
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.spyChat.binID}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Master-Key': DB_CONFIG.spyChat.XmasterKey
+                        }
+                    });
+                    chatData = await response.json();
+                    displayChat(chatData.record.data.ChatJasoos || []);
+                } else {
+                    // بارگیری چت شهروندان
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                        }
+                    });
+                    chatData = await response.json();
+                    displayChat(chatData.record.data.ChatShahrvand || []);
+                }
+            } catch (error) {
+                console.error('خطا در بارگیری چت:', error);
+            }
+        }
+
+        // تابع نمایش چت
+        function displayChat(messages) {
+            chatMessages.innerHTML = '';
+            
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${msg.name === playerName ? 'own' : 'other'}`;
+                
+                const time = new Date(msg.timestamp).toLocaleTimeString('fa-IR', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                
+                messageDiv.innerHTML = `
+                    <div class="message-info">${msg.name} - ${time}</div>
+                    <div>${msg.message}</div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+            });
+            
+            // اسکرول به پایین
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // تابع ارسال پیام
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+            
+            const newMessage = {
+                name: playerName,
+                message: message,
+                timestamp: Date.now()
+            };
+            
+            try {
+                if (playerRole === 'spy') {
+                    // ارسال به چت جاسوس‌ها
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.spyChat.binID}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Master-Key': DB_CONFIG.spyChat.XmasterKey
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    const chatJasoos = data.record.data.ChatJasoos || [];
+                    chatJasoos.push(newMessage);
+                    
+                    await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.spyChat.binID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': DB_CONFIG.spyChat.XmasterKey
+                        },
+                        body: JSON.stringify({
+                            data: {
+                                ChatJasoos: chatJasoos
+                            }
+                        })
+                    });
+                } else {
+                    // ارسال به چت شهروندان
+                    const response = await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}`, {
+                        method: 'GET',
+                        headers: {
+                            'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    const chatShahrvand = data.record.data.ChatShahrvand || [];
+                    chatShahrvand.push(newMessage);
+                    
+                    await fetch(`https://api.jsonbin.io/v3/b/${DB_CONFIG.nameAndCitizenChat.binID}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Master-Key': DB_CONFIG.nameAndCitizenChat.XmasterKey
+                        },
+                        body: JSON.stringify({
+                            data: {
+                                ...data.record.data,
+                                ChatShahrvand: chatShahrvand
+                            }
+                        })
+                    });
+                }
+                
+                chatInput.value = '';
+                loadChat();
+            } catch (error) {
+                console.error('خطا در ارسال پیام:', error);
+            }
+        }
+
+        // تابع بارگیری گزینه‌های نظرسنجی
+        function loadPollOptions() {
+            pollOptionsList.innerHTML = '';
+            
+            citizensList.forEach(name => {
+                const optionItem = document.createElement('div');
+                optionItem.className = 'poll-option-item';
+                optionItem.innerHTML = `
+                    <input type="checkbox" id="poll-${name}" value="${name}">
+                    <label for="poll-${name}">${name}</label>
+                `;
+                pollOptionsList.appendChild(optionItem);
+            });
+        }
+
+        // تابع ایجاد نظرسنجی
+        async function createPoll() {
+            const question = pollQuestion.value.trim();
+            if (!question) {
+                alert('لطفا سوال نظرسنجی را وارد کنید');
+                return;
+            }
+            
+            const checkboxes = pollOptionsList.querySelectorAll('input[type="checkbox"]:checked');
+            if (checkboxes.length === 0) {
+                alert('لطفا حداقل یک گزینه را انتخاب کنید');
+                return;
+            }
+            
+            const options = Array.from(checkboxes).map(cb => cb.value);
+            
+            currentPoll = {
+                question: question,
+                options: options,
+                votes: {}
+            };
+            
+            options.forEach(option => {
+                currentPoll.votes[option] = 0;
+            });
+            
+            // نمایش نظرسنجی
+            pollCreation.classList.add('hidden');
+            pollResults.classList.remove('hidden');
+            pollQuestionDisplay.textContent = question;
+            displayPollResults();
+        }
+
+        // تابع نمایش نتایج نظرسنجی
+        function displayPollResults() {
+            pollOptionsContainer.innerHTML = '';
+            
+            const totalVotes = Object.values(currentPoll.votes).reduce((sum, count) => sum + count, 0);
+            
+            currentPoll.options.forEach(option => {
+                const votes = currentPoll.votes[option];
+                const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'poll-option';
+                optionDiv.innerHTML = `
+                    <div>${option}</div>
+                    <div class="poll-bar">
+                        <div class="poll-fill" style="width: ${percentage}%">${percentage}%</div>
+                    </div>
+                    <div class="poll-percent">${votes} رأی</div>
+                `;
+                pollOptionsContainer.appendChild(optionDiv);
+            });
+            
+            // اگر بازیکن رأی نداده، دکمه رأی دادن را نمایش بده
+            if (!hasVoted) {
+                votePollBtn.classList.remove('hidden');
+            }
+        }
+
+        // تابع رأی دادن به نظرسنجی
+        async function votePoll() {
+            if (!currentPoll || hasVoted) return;
+            
+            // انتخاب رندوم یک گزینه (در نسخه واقعی، بازیکن گزینه را انتخاب می‌کند)
+            const randomOption = currentPoll.options[Math.floor(Math.random() * currentPoll.options.length)];
+            currentPoll.votes[randomOption]++;
+            hasVoted = true;
+            
+            votePollBtn.classList.add('hidden');
+            displayPollResults();
+            
+            // در نسخه واقعی، باید رأی را در دیتابیس ذخیره کنیم
+            // برای سادگی، این بخش را پیاده‌سازی نمی‌کنیم
+        }
+
+        // اگر بازیکن قبلاً نام خود را وارد کرده، فرم را مخفی کن
+        if (playerName) {
+            nameForm.classList.add('hidden');
+            playersSection.classList.remove('hidden');
+            gameStatus.classList.remove('hidden');
+            loadPlayers();
+            checkGameStatus();
+        }
+    </script>
+</body>
+</html>
